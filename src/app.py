@@ -63,6 +63,44 @@ def get_character(character_id):
     return jsonify(character.serialize()), 200
 
 
+@app.route('/favorite/character/<int:character_id>', methods=['POST'])
+def add_favorite_character(character_id):
+    user_id = request.json.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Verificar si el personaje ya está en favoritos
+    existing_fav = Fav.query.filter_by(id_user=user_id, id_character=character_id).first()
+    if existing_fav:
+        return jsonify({"error": "Character already in favorites"}), 400
+
+    # Agrega el personaje como favorito
+    new_fav = Fav(id_user=user_id, id_character=character_id)
+    db.session.add(new_fav)
+    db.session.commit()
+    return jsonify(new_fav.serialize()), 201
+
+
+@app.route('/favorite/character/<int:character_id>', methods=['DELETE'])
+def remove_favorite_character(character_id):
+    user_id = request.json.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Eliminar el personaje de los favoritos si existe
+    fav = Fav.query.filter_by(id_user=user_id, id_character=character_id).first()
+    if not fav:
+        return jsonify({"error": "Character not found in favorites"}), 404
+
+    db.session.delete(fav)
+    db.session.commit()
+    return jsonify({"message": "Character removed from favorites"}), 200
 
 
 @app.route('/planets', methods=['GET'])
@@ -79,22 +117,40 @@ def get_planet(planet_id):
     return jsonify(planet.serialize()), 200
 
 @app.route('/favorite/planet', methods=['POST'])
-def add_favorite_planet(planet_id):
-    user_id= request.json.get(user_id)
-    planet_id = request.json.get(planet_id)
-
+def add_favorite_planet():
+    user_id = request.json.get("user_id")
+    planet_id = request.json.get("planet_id")
+    if not user_id or not planet_id:
+        return jsonify({"Error": "user_id and planet_id are required"}), 400
     user = User.query.get(user_id)
-    id_user = user.id
-    existing_fav = Fav.query.filter_by(id_user = user_id, id_planet = planet_id).first()
-    if existing_fav: 
+    if not user:
+        return jsonify({"Error": "User not found"}), 404
+    existing_fav = Fav.query.filter_by(id_user=user_id, id_planet=planet_id).first()
+    if existing_fav:
         return jsonify({"Error": "Planet already in favorites"}), 400
-    
-    new_fav = Fav(id_user = user_id, id_planet = planet_id)
-
+   
+    new_fav = Fav(id_user=user_id, id_planet=planet_id)
     db.session.add(new_fav)
     db.session.commit()
+    return jsonify(new_fav.serialize()), 201
 
-    return jsonify(new_fav.serialize()), 201 
+
+@app.route('/favorite/planet/<int:planet_id>', methods=['DELETE'])
+def remove_favorite_planet(planet_id):
+    user_id = request.json.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    fav = Fav.query.filter_by(id_user=user_id, id_planet=planet_id).first()
+    if not fav:
+        return jsonify({"error": "Planet not found in favorites"}), 404
+
+    db.session.delete(fav)
+    db.session.commit()
+    return jsonify({"message": "Planet removed from favorites"}), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
